@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiny-web
+  namespace: smoke-demo
+  labels:
+    app: tiny-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tiny-web
+  template:
+    metadata:
+      labels:
+        app: tiny-web
+    spec:
+      containers:
+        - name: tiny-web
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - "-text=kind-ci-smoke-ok"
+          ports:
+            - containerPort: 5678
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5678
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5678
+            initialDelaySeconds: 5
+            periodSeconds: 5

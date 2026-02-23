@@ -1,0 +1,41 @@
+name: kind-k8s-smoke
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  kind-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage 1 - Lint YAML
+        run: |
+          python -m pip install --upgrade pip yamllint
+          yamllint -d '{extends: default, rules: {line-length: {max: 140}}}' k8s .github/workflows
+
+      - name: Stage 2 - Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: kind-ci-smoke
+          wait: 120s
+
+      - name: Stage 3 - Deploy manifests
+        run: kubectl apply -f k8s/
+
+      - name: Stage 4 - Wait for rollout
+        run: |
+          kubectl -n smoke-demo rollout status deployment/tiny-web --timeout=180s
+          kubectl -n smoke-demo get pods -o wide
+
+      - name: Stage 5 - Smoke tests
+        run: ./scripts/smoke-test.sh
+
+      - name: Stage 6 - Cleanup
+        if: always()
+        run: |
+          kind delete cluster --name kind-ci-smoke || true
