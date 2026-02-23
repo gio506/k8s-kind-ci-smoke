@@ -1,6 +1,7 @@
+---
 name: kind-k8s-smoke
 
-on:
+"on":
   push:
     branches: ["main"]
   pull_request:
