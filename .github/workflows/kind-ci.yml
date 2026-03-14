@@ -3,7 +3,6 @@ name: kind-k8s-smoke
 
 "on":
   push:
-    branches: ["main"]
   pull_request:
 
 jobs:
@@ -17,6 +16,8 @@ jobs:
       - name: Stage 1 - Lint YAML
         run: |
           python -m pip install --upgrade pip yamllint
+          chmod +x scripts/*.sh
+          bash -n scripts/*.sh
           yamllint -d '{extends: default, rules: {line-length: {max: 140}}}' k8s .github/workflows
 
       - name: Stage 2 - Create kind cluster
@@ -26,9 +27,7 @@ jobs:
           wait: 120s
 
       - name: Stage 3 - Deploy manifests
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml
+        run: ./scripts/deploy.sh
 
       - name: Stage 4 - Wait for rollout
         run: |
@@ -36,7 +35,11 @@ jobs:
           kubectl -n smoke-demo get pods -o wide
 
       - name: Stage 5 - Smoke tests
-        run: ./scripts/smoke-test.sh
+        run: ./scripts/smoke.sh
+
+      - name: Collect logs on failure
+        if: failure()
+        run: ./scripts/collect_logs.sh
 
       - name: Stage 6 - Cleanup
         if: always()
