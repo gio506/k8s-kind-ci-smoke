@@ -16,6 +16,9 @@ spec:
       labels:
         app: tiny-web
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: tiny-web
           image: hashicorp/http-echo:1.0.0
@@ -23,6 +26,20 @@ spec:
             - "-text=kind-ci-smoke-ok"
           ports:
             - containerPort: 5678
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
           readinessProbe:
             httpGet:
               path: /

@@ -20,28 +20,34 @@ jobs:
           bash -n scripts/*.sh
           yamllint -d '{extends: default, rules: {line-length: {max: 140}}}' k8s .github/workflows
 
-      - name: Stage 2 - Create kind cluster
+      - name: Stage 2 - Security manifest checks
+        run: |
+          grep -q "allowPrivilegeEscalation: false" k8s/deployment.yaml
+          grep -q "runAsNonRoot: true" k8s/deployment.yaml
+          grep -q "seccompProfile" k8s/deployment.yaml
+
+      - name: Stage 3 - Create kind cluster
         uses: helm/kind-action@v1.10.0
         with:
           cluster_name: kind-ci-smoke
           wait: 120s
 
-      - name: Stage 3 - Deploy manifests
+      - name: Stage 4 - Deploy manifests
         run: ./scripts/deploy.sh
 
-      - name: Stage 4 - Wait for rollout
+      - name: Stage 5 - Wait for rollout
         run: |
           kubectl -n smoke-demo rollout status deployment/tiny-web --timeout=180s
           kubectl -n smoke-demo get pods -o wide
 
-      - name: Stage 5 - Smoke tests
+      - name: Stage 6 - Smoke tests
         run: ./scripts/smoke.sh
 
       - name: Collect logs on failure
         if: failure()
         run: ./scripts/collect_logs.sh
 
-      - name: Stage 6 - Cleanup
+      - name: Stage 7 - Cleanup
         if: always()
         run: |
           kind delete cluster --name kind-ci-smoke || true
