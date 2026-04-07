@@ -4,18 +4,26 @@ name: kind-k8s-smoke
 "on":
   push:
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kind-k8s-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   kind-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Stage 1 - Lint YAML
         run: |
-          python -m pip install --upgrade pip yamllint
+          pipx install yamllint
           chmod +x scripts/*.sh
           bash -n scripts/*.sh
           yamllint -d '{extends: default, rules: {line-length: {max: 140}}}' k8s .github/workflows
